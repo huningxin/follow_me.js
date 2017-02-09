@@ -1,0 +1,13 @@
+{
+  "name": "follow_me",
+  "version": "0.0.1",
+  "description": "follow_me",
+  "main": "main.js",
+  "author": "Ningxin Hu <ningxin.hu@intel.com>",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "express": "^4.14.0",
+    "jpeg-turbo": "^0.4.0",
+    "ws": "^1.1.1"
+  }
+}
