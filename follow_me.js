@@ -55,6 +55,7 @@ ptModule.createPersonTracker(ptConfig, cameraConfig).then((instance) => {
   pt.on('persontracked', function(result) {
     startTracking(result);
     sendTrackingData(result);
+    updateSpeed(result);
   });
 
   return pt.start();
@@ -273,19 +274,16 @@ function getEthernetIp() {
   return ip;
 }
 
-let axe0, axe1, pressed;
+let axe0, axe1, pressed0, pressed1;
 let stopped = true;
+let following = false;
 
 function handleGamepadMessage(message) {
   let controller = JSON.parse(message);
-  let newAxe0 = Math.floor(controller.axes[0] * 10) / 10;
-  let newAxe1 = Math.floor(controller.axes[1] * 10) / 10;
-  let newPressed = controller.buttons[0].pressed;
-  if (axe0 != newAxe0 || axe1 != newAxe1 || pressed != newPressed) {
-    axe0 = newAxe0;
-    axe1 = newAxe1;
-    pressed = newPressed;
-    if (pressed) {
+  let newPressed0= controller.buttons[0].pressed;
+  if (pressed0 != newPressed0) {
+    pressed0 = newPressed0;
+    if (pressed0) {
       stopped = !stopped;
       if (stopped) {
         console.log('stopped');
@@ -294,11 +292,110 @@ function handleGamepadMessage(message) {
         console.log('started');
       }
     } 
-    
+  }
+
+  let newPressed1= controller.buttons[1].pressed;
+  if (pressed1 != newPressed1) {
+    pressed1 = newPressed1;
+    if (pressed1) {
+      following = !following;
+      if (following) {
+        console.log('following');
+      } else {
+        console.log('no-following');
+      }
+    } 
+  }
+
+  let newAxe0 = Math.floor(controller.axes[0] * 10) / 10;
+  let newAxe1 = Math.floor(controller.axes[1] * 10) / 10;
+  if (axe0 != newAxe0 || axe1 != newAxe1) {
+    axe0 = newAxe0;
+    axe1 = newAxe1;
     if (!stopped) {
       if (axe1 <= 0) axe0 = -axe0;
-      console.log('setBaseControl(' + -axe1/2 + ', ' + axe0 + ')');
       move(-axe1/2, axe0);
+    }
+  }
+}
+
+const centerX = 0;
+const centerY = 0;
+const centerZ = 1.3;
+const linearStep = 0.01;
+const linearMax = 0.6;
+
+let prevTimestamp = 0;
+let linear = 0;
+
+function updateSpeed(result) {
+  if (!following)
+    return;
+  // control 10 FPS
+  /*
+  if (prevTimestamp === 0) {
+    prevTimestamp = Date.now();
+  } else {
+    let diff = Date.now() - prevTimestamp;
+    if (diff < 100)
+      return;
+    prevTimestamp = Date.now();
+  }
+  */
+
+  // find the tracking person
+  let persons = result.persons;
+  if (persons.length > 0) {
+    let personData = null;
+    persons.forEach(function(person) {
+      if (person.trackInfo.id === trackingPersonId)
+        personData = person;
+    });
+    if (personData === null)
+      return;
+    let trackInfo = personData.trackInfo;
+    if (trackInfo) {
+      let center = trackInfo.center;
+      if (center) {
+        let x = center.worldCoordinate.x;
+        let y = center.worldCoordinate.y;
+        let z = center.worldCoordinate.z;
+        let angular = 0;
+        if (Math.abs(x - centerX) > 0.1) {
+          angular = Math.atan2(centerX - x, z);
+	  angular *= 180 / Math.PI;
+          angular /= 10;
+        }
+
+        let target = z - centerZ;
+        if (Math.abs(target) > 0.1) {
+          if (Math.abs(linear) < Math.abs(target)) {
+            if (target > 0)
+              linear += linearStep;
+            else
+              linear -= linearStep;
+          } else if (Math.abs(linear) > Math.abs(target)) {
+            if (target > 0)
+              linear -= linearStep;
+            else
+              linear += linearStep;
+          }
+        } else {
+          if (Math.abs(linear - 0) > 0.05)
+            if (linear > 0)
+              linear -= 5*linearStep;
+            else
+              linear += 5*linearStep;
+          else
+            linear = 0;
+        } 
+
+        if (linear > linearMax) linear = linearMax;
+	else if (linear < -linearMax) linear = -linearMax;
+	angular = Math.floor(angular * 10) / 10;
+        
+        move(linear, angular);
+      }
     }
   }
 }
@@ -347,5 +444,8 @@ function brake() {
 }
 
 function move(linear, angular) {
-  kobuki.setBaseControl(linear, angular);
+  if (!stopped) {
+    console.log('set speed: ' + linear + ', ' + angular);
+    kobuki.setBaseControl(linear, angular);
+  }
 }
