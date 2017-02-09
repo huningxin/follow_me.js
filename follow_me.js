@@ -50,7 +50,7 @@ ptModule.createPersonTracker(ptConfig, cameraConfig).then((instance) => {
   startServer();
   pt.on('frameprocessed', function(result) {
     sendRgbFrame(pt.getFrameData());
-    updateLed(result);
+    checkPersonDetected(result);
   });
   pt.on('persontracked', function(result) {
     startTracking(result);
@@ -91,18 +91,19 @@ function exit() {
 }
 
 let personDetected = false;
-function updateLed(result) {
+function checkPersonDetected(result) {
   if (result.persons.length > 0) {
     if (!personDetected) {
       console.log('Person is detected, blink LED...');
       personDetected = true;
-      startBlinkLed(); 
+      startBlinkLed();
     }
   } else {
     if (personDetected) {
       console.log('No person is detected, stop blinking...');
       personDetected = false;
       stopBlinkLed();
+      brake();
     }
   }
 }
@@ -275,6 +276,33 @@ function getEthernetIp() {
 let axe0, axe1, pressed;
 let stopped = true;
 
+function handleGamepadMessage(message) {
+  let controller = JSON.parse(message);
+  let newAxe0 = Math.floor(controller.axes[0] * 10) / 10;
+  let newAxe1 = Math.floor(controller.axes[1] * 10) / 10;
+  let newPressed = controller.buttons[0].pressed;
+  if (axe0 != newAxe0 || axe1 != newAxe1 || pressed != newPressed) {
+    axe0 = newAxe0;
+    axe1 = newAxe1;
+    pressed = newPressed;
+    if (pressed) {
+      stopped = !stopped;
+      if (stopped) {
+        console.log('stopped');
+        brake();
+      } else {
+        console.log('started');
+      }
+    } 
+    
+    if (!stopped) {
+      if (axe1 <= 0) axe0 = -axe0;
+      console.log('setBaseControl(' + -axe1/2 + ', ' + axe0 + ')');
+      move(-axe1/2, axe0);
+    }
+  }
+}
+
 function startServer() {
   // Share the ui-browser code from cpp sample
   app.use(express.static('client'));
@@ -308,31 +336,16 @@ function startServer() {
     client.on('message', function(message) {
       if (message instanceof Buffer) {
       } else {
-        let controller = JSON.parse(message);
-        let newAxe0 = Math.floor(controller.axes[0] * 10) / 10;
-        let newAxe1 = Math.floor(controller.axes[1] * 10) / 10;
-        let newPressed = controller.buttons[0].pressed;
-        if (axe0 != newAxe0 || axe1 != newAxe1 || pressed != newPressed) {
-          axe0 = newAxe0;
-          axe1 = newAxe1;
-          pressed = newPressed;
-          if (pressed) {
-            stopped = !stopped;
-            if (stopped) {
-              console.log('stopped');
-              kobuki.setBaseControl(0, 0);
-            } else {
-              console.log('started');
-            }
-          } 
-          
-          if (!stopped) {
-            if (axe1 <= 0) axe0 = -axe0;
-            console.log('setBaseControl(' + -axe1/2 + ', ' + axe0 + ')');
-            kobuki.setBaseControl(-axe1/2, axe0);
-          }
-        }
+        handleGamepadMessage(message);
       }
     });
   });
+}
+
+function brake() {
+  kobuki.setBaseControl(0, 0);
+}
+
+function move(linear, angular) {
+  kobuki.setBaseControl(linear, angular);
 }
