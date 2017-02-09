@@ -121,6 +121,23 @@
 			width: 100%;
 		}
 		
+		.buttons, .axes {
+		  padding: 1em;
+		}
+
+		.button {
+		  padding: 1em;
+		  border-radius: 20px;
+		  border: 1px solid black;
+		  background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAAAXNSR0IArs4c6QAAAAxJREFUCNdjYPjPAAACAgEAqiqeJwAAAABJRU5ErkJggg==);
+		  background-size: 0% 0%;
+		  background-position: 50% 50%;
+		  background-repeat: no-repeat;
+		}
+
+		.pressed {
+		  border: 1px solid red;
+		}
 	</style>
 <link rel="stylesheet" href="css/bulma.css" />
 <script src="js/third_party/vue.js"></script>
@@ -170,7 +187,7 @@
 			</div>
 		</div>
 	</div>
-
+	<h2 id="start">Press a button on your controller to start</h2>
 	<script src="js/third_party/Stats.js"></script>
 	<script src="js/third_party/jpg.js"></script>
 	<script src="js/third_party/three.js"></script>
@@ -180,5 +197,6 @@
 	<script src="js/transport.js"></script>
 	<!-- <script src="js/pose_view.js"></script> -->
 	<script src="js/view.js"></script>
+	<script src="js/gamepad.js"></script>
 </body>
 </html>

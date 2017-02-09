@@ -12,6 +12,9 @@ let WsServer = require('ws').Server;
 
 let mraa = require('mraa'); //require mraa
 let ptModule = require('person-tracking'); //require person-tracking
+let addon = require('node-kobuki');
+let kobuki = new addon.KobukiManager('/ttyUSB0');
+
 console.log('MRAA Version: ' + mraa.getVersion()); //write the mraa version to the console
 
 let led = new mraa.Gpio(27); //Corresponding to ISH_GPIO4
@@ -277,6 +280,9 @@ function getEthernetIp() {
   return ip;
 }
 
+let axe0, axe1, pressed;
+let stopped = true;
+
 function startServer() {
   // Share the ui-browser code from cpp sample
   app.use(express.static('client'));
@@ -305,6 +311,36 @@ function startServer() {
       }
       if (clients.length === 0)
         connected = false;
+    });
+
+    client.on('message', function(message) {
+      if (message instanceof Buffer) {
+      } else {
+        let controller = JSON.parse(message);
+        let newAxe0 = Math.floor(controller.axes[0] * 10) / 10;
+        let newAxe1 = Math.floor(controller.axes[1] * 10) / 10;
+        let newPressed = controller.buttons[0].pressed;
+        if (axe0 != newAxe0 || axe1 != newAxe1 || pressed != newPressed) {
+          axe0 = newAxe0;
+          axe1 = newAxe1;
+          pressed = newPressed;
+          if (pressed) {
+            stopped = !stopped;
+            if (stopped) {
+              console.log('stopped');
+              kobuki.setBaseControl(0, 0);
+            } else {
+              console.log('started');
+            }
+          } 
+          
+          if (!stopped) {
+            if (axe1 <= 0) axe0 = -axe0;
+            console.log('setBaseControl(' + -axe1/2 + ', ' + axe0 + ')');
+            kobuki.setBaseControl(-axe1/2, axe0);
+          }
+        }
+      }
     });
   });
 }
