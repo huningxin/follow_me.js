@@ -43,15 +43,17 @@ let ptConfig = {tracking: {enable: true, trackingMode: 'following'}};
 let cameraConfig = {color: {width: 320, height: 240, frameRate: 30, isEnabled: true},
                     depth: {width: 320, height: 240, frameRate: 30, isEnabled: true}};
 let pt;
-let personDetected = false;
 
 ptModule.createPersonTracker(ptConfig, cameraConfig).then((instance) => {
   pt = instance;
   console.log('Enabling Tracking with mode set to 0');
   startServer();
   pt.on('frameprocessed', function(result) {
-    printPersonCount(result);
     sendRgbFrame(pt.getFrameData());
+    updateLed(result);
+  });
+  pt.on('persontracked', function(result) {
+    startTracking(result);
     sendTrackingData(result);
   });
 
@@ -88,48 +90,31 @@ function exit() {
   }
 }
 
-let lastPersonCount = 0;
-let totalPersonIncrements = 0;
-let prevPeopleInFrame = 0;
-let prevPeopleTotal = 0;
-let idSet = null;
-let w = 25;
-
-function printPersonCount(result) {
-  let persons = result.persons;
-  let numPeopleInFrame = 0;
-  let newIdSet = new Set();
-
-  persons.forEach(function(person) {
-    newIdSet.add(person.trackInfo.id);
-  });
-
-  numPeopleInFrame = persons.length;
-
-  if (numPeopleInFrame > lastPersonCount)
-    totalPersonIncrements += (numPeopleInFrame - lastPersonCount);
-  else if (numPeopleInFrame === lastPersonCount && idSet !== null) {
-    let diff = new Set(Array.from(idSet).filter((x) => !newIdSet.has(x)));
-    totalPersonIncrements += diff.size;
-  }
-
-  idSet = newIdSet;
-
-  lastPersonCount = numPeopleInFrame;
-
-  if (numPeopleInFrame !== prevPeopleInFrame || totalPersonIncrements !== prevPeopleTotal) {
-    console.log(padding('Current Frame Total', w), padding('Cumulative', w));
-    console.log(padding('--------------------', w), padding('----------', w));
-    console.log(padding(numPeopleInFrame, w), padding(totalPersonIncrements, w));
-
-    prevPeopleInFrame = numPeopleInFrame;
-    prevPeopleTotal = totalPersonIncrements;
-  }
-
-  if (numPeopleInFrame > 0) {
-    startBlinkLed(); 
+let personDetected = false;
+function updateLed(result) {
+  if (result.persons.length > 0) {
+    if (!personDetected) {
+      console.log('Person is detected, blink LED...');
+      personDetected = true;
+      startBlinkLed(); 
+    }
   } else {
-    stopBlinkLed();
+    if (personDetected) {
+      console.log('No person is detected, stop blinking...');
+      personDetected = false;
+      stopBlinkLed();
+    }
+  }
+}
+
+let trackingPersonId;
+
+function startTracking(result) {
+  if (pt.state === 'detecting' && result.persons.length > 0) {
+    // Start tracking the first person detected in the frame.
+    console.log('Call StartTracking()');
+    trackingPersonId = result.persons[0].trackInfo.id;
+    pt.personTracking.startTrackingPerson(trackingPersonId);
   }
 }
 
@@ -146,15 +131,22 @@ function sendTrackingData(result) {
     return;
   }
   let persons = result.persons;
-  let resultArray = [];
-  persons.forEach(function(person) {
-    let trackInfo = person.trackInfo;
+  if (persons.length > 0) {
+    let personData = null;
+    persons.forEach(function(person) {
+      if (person.trackInfo.id === trackingPersonId)
+        personData = person;
+    });
+  
+    if (personData === null)
+      return;
+    let resultArray = [];
+    let trackInfo = personData.trackInfo;
     if (trackInfo) {
       let element = {};
       let boundingBox = trackInfo.boundingBox;
       let center = trackInfo.center;
       element.pid = trackInfo.id;
-      element.cumulative_total = totalPersonIncrements;
       if (boundingBox) {
         element.person_bounding_box = {
           x: boundingBox.rect.x,
@@ -176,12 +168,12 @@ function sendTrackingData(result) {
       }
       resultArray.push(element);
     }
-  });
-  let resultToDisplay = {
-    Object_result: resultArray,
-    type: 'person_tracking',
-  };
-  sendData(JSON.stringify(resultToDisplay));
+    let resultToDisplay = {
+      Object_result: resultArray,
+      type: 'person_tracking',
+    };
+    sendData(JSON.stringify(resultToDisplay));
+  }
 }
 
 function sendRgbFrame(frame) {
