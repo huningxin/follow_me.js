@@ -112,13 +112,14 @@ this.prevX=0.0;
 this.prevY=0.0;
 this.prevZ=0.0;
 this.prevOrientation="";
+
+// view.html sets scaleFactor to 2, index.html uses 1.
+var scaleFactor;
 transporter.onPTDataUpdate = (timestamp, pt_data) => {
     var tracking_result=false, head_pose_result=false, orientation_result=false; gesture_result=false;
     if (pt_data === undefined) {
         console.log("The PT data is not available");
     } else {
-        var scaleFactor = 2;        
-
         var canvas2d=document.getElementById("color-2d-overlay");
         if (canvas2d == null) {
             console.log("Failed to get color-2d-overlay element");

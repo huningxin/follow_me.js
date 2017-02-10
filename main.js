@@ -278,8 +278,7 @@ let axe0, axe1, pressed0, pressed1;
 let stopped = true;
 let following = false;
 
-function handleGamepadMessage(message) {
-  let controller = JSON.parse(message);
+function handleGamepadMessage(controller) {
   let newPressed0= controller.buttons[0].pressed;
   if (pressed0 != newPressed0) {
     pressed0 = newPressed0;
@@ -363,7 +362,7 @@ function updateSpeed(result) {
         let angular = 0;
         if (Math.abs(x - centerX) > 0.1) {
           angular = Math.atan2(centerX - x, z);
-	  angular *= 180 / Math.PI;
+          angular *= 180 / Math.PI;
           angular /= 10;
         }
 
@@ -391,8 +390,8 @@ function updateSpeed(result) {
         } 
 
         if (linear > linearMax) linear = linearMax;
-	else if (linear < -linearMax) linear = -linearMax;
-	angular = Math.floor(angular * 10) / 10;
+        else if (linear < -linearMax) linear = -linearMax;
+        angular = Math.floor(angular * 10) / 10;
         
         move(linear, angular);
       }
@@ -433,7 +432,12 @@ function startServer() {
     client.on('message', function(message) {
       if (message instanceof Buffer) {
       } else {
-        handleGamepadMessage(message);
+        let msgObject = JSON.parse(message);
+        if (msgObject.type === 'gamepad') {
+          handleGamepadMessage(msgObject.body);
+        } else {
+          console.log('unkonwn message type: ' + msgObject.type);
+        }
       }
     });
   });

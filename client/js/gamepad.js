@@ -103,7 +103,7 @@ function updateStatus() {
 
 function sendStatus(controller) {
   if (connected) {
-    var msg = {
+    var gamepad = {
       id: controller.id,
       buttons: [
         {pressed: controller.buttons[0].pressed},
@@ -113,6 +113,10 @@ function sendStatus(controller) {
       ],
       axes: controller.axes,
     };
+    var msg = {
+      type: 'gamepad',
+      body: gamepad
+    }
     ws.send(JSON.stringify(msg));
   }
 }
