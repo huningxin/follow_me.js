@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <title>Follow Me</title>
+
+    <!-- Bootstrap -->
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
+  <style>
+    .btn-xlg {
+      padding: 18px 28px;
+      font-size: 28px;
+      line-height: normal;
+      -webkit-border-radius: 8px;
+         -moz-border-radius: 8px;
+              border-radius: 8px;
+    }
+    #color-canvas, #color-2d-overlay {
+      position: absolute;
+      top: 0;
+      right: 0;
+      left: 0;
+      margin: auto;
+    }
+    #color-canvas{
+      z-index: 0;
+    }
+    #color-2d-overlay {
+      z-index: 1;
+    }
+    .top-space {
+      margin-top: 80px;
+    }
+  </style>
+  <body>
+    <div class="container">
+  <div class="row">
+    <div class="col-xs-12 top-space"></div>
+    <div class="col-xs-12">
+      <canvas id="color-canvas" width=320; height=240></canvas>
+          <canvas id="color-2d-overlay" width=320; height=240></canvas>  
+    </div>
+    <div class="col-xs-12 top-space"></div>
+    <div class="col-xs-12 top-space"></div>
+    <div class="col-xs-12 top-space"></div>
+    <div class="col-xs-12 top-space"></div>
+    <div class="col-xs-12 text-center">
+      <button id="follow" type="button" class="btn btn-primary btn-xlg">Follow Me</button>
+    </div>
+  </div>
+  <div class="invisible ">
+    <div class="columns">
+      <div class="column_left">
+              
+        <!-- Status and disconect button -->
+        <div class="level"> 
+          <span>Server: {{wsurl? wsurl : 'Disconnected'}}</span>
+          <button class="button is-danger" id="tButtonName" v-on:click="check">Stop</button>
+          <!-- <button class="button is-danger" id="tButtonName" disabled="{{!isConnected}}" v-on:click="stop">Stop</button> -->
+        </div>
+      </div> 
+
+      <!-- Table of recognized things -->
+      <div class="column_right">
+        <!-- <p id="touchDeviceText">This table is scrollable</p> -->
+        <div id="scrollTableContainer">
+          <div id="tHeadContainer">
+            <table id="tHead">
+              <tr>
+                <th id="head1">Time Stamp</th>
+                <th id="head2">Person&nbsp;ID</th>
+                <th id="head3">World Co-ordinates (x,&nbsp;y,&nbsp;z)</th>
+                <th id="head4">Cumulative Person Count</th>
+              </tr>
+            </table>
+          </div> <!-- tHeadContainer -->
+          <div id="tBodyContainer">
+            <table id="tBody">
+            <!-- table rows will go here -->
+            </table>
+          </div> <!-- tBodyContainer -->
+        </div> <!-- scrollTableContainer -->
+                <div id="textArea"></div>
+      </div>
+    </div>
+  </div>
+</div>
+    </div>
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="js/jquery.min.js"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script src="js/bootstrap.min.js"></script>
+    <script src="js/third_party/vue.js"></script>
+    <script src="js/third_party/Stats.js"></script>
+    <script src="js/third_party/jpg.js"></script>
+    <script src="js/third_party/three.js"></script>
+    <script src="js/third_party/TrackballControls.js"></script>
+    <script src="js/buffer_view.js"></script>
+    <script src="js/transport.js"></script>
+    <script src="js/view.js"></script>
+    <script>
+      scaleFactor = 1;
+    </script>
+  </body>
+</html>
