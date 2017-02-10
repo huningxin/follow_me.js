@@ -157,7 +157,7 @@ transporter.onPTDataUpdate = (timestamp, pt_data) => {
                 
                 data_final += ";" + CenterMassWorldX + ", " + CenterMassWorldY + ", " + CenterMassWorldZ+ ";";
 
-                if( Math.abs(this.prevX-CenterMassWorldX)>0.3 || Math.abs(this.prevY-CenterMassWorldY)>0.3 || Math.abs(this.prevZ-CenterMassWorldZ)>0.3)//To Reduce print overflow
+                if( Math.abs(this.prevX-CenterMassWorldX)>0.1 || Math.abs(this.prevY-CenterMassWorldY)>0.1 || Math.abs(this.prevZ-CenterMassWorldZ)>0.1)//To Reduce print overflow
                 {
                     this.prevX=CenterMassWorldX;
                     this.prevY=CenterMassWorldY;
