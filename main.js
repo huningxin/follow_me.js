@@ -12,8 +12,15 @@ let WsServer = require('ws').Server;
 
 let mraa = require('mraa'); //require mraa
 let ptModule = require('person-tracking'); //require person-tracking
-let addon = require('node-kobuki');
-let kobuki = new addon.KobukiManager('/ttyUSB0');
+//let addon = require('node-kobuki');
+//let kobuki = new addon.KobukiManager('/ttyUSB0');
+const DFRobotHCRProtocol = require('./DFRobotHCRProtocol');
+
+// var speed = 20; // cm/s
+
+let hcr = new DFRobotHCRProtocol(function () {
+  console.log("On System ready");
+});
 
 console.log('MRAA Version: ' + mraa.getVersion()); //write the mraa version to the console
 
@@ -459,12 +466,13 @@ function startServer() {
 }
 
 function brake() {
-  kobuki.setBaseControl(0, 0);
+  hcr.setMotorSpeed(0,0);
 }
 
 function move(linear, angular) {
   if (!stopped) {
+    linear *= 100;
     console.log('set speed: ' + linear + ', ' + angular);
-    kobuki.setBaseControl(linear, angular);
+    hcr.setMotorSpeed(linear, linear);
   }
 }
