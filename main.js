@@ -399,6 +399,19 @@ function updateSpeed(result) {
   }
 }
 
+function handleFollowMessage(enable) {
+  if (enable) {
+    console.log('enable follow');
+    following = true;
+    stopped = false;
+  } else {
+    console.log('disable follow');
+    brake();
+    following = false;
+    stopped = true;
+  }
+}
+
 function startServer() {
   // Share the ui-browser code from cpp sample
   app.use(express.static('client'));
@@ -435,6 +448,8 @@ function startServer() {
         let msgObject = JSON.parse(message);
         if (msgObject.type === 'gamepad') {
           handleGamepadMessage(msgObject.body);
+        } else if (msgObject.type === 'follow') {
+          handleFollowMessage(msgObject.body);
         } else {
           console.log('unkonwn message type: ' + msgObject.type);
         }
