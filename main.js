@@ -18,11 +18,126 @@ const DFRobotHCRProtocol = require('./DFRobotHCRProtocol');
 
 // var speed = 20; // cm/s
 
+
+var block = false;
 let hcr = new DFRobotHCRProtocol(function () {
-  console.log("On System ready");
+  //console.log("On System ready");
+
+  setTimeout(function loop () {
+    if(block)
+    {
+      return;
+    }
+
+    //console.log();
+
+    var ultraforward = 100000;
+    hcr.requestUltrasonicDistance(function (results) {
+      //console.log('requestUltrasonicDistance: (cm)');
+      //console.log(results);
+      var rightForward  = results[0];
+      var rightBackward = results[1];
+      var backward      = results[2];
+      var leftBackward  = results[3];
+      var leftForward   = results[4];
+      var forward       = results[5];
+      ultraforward = forward;
+   });
+
+    hcr.requestInfraredDistance(function (results) {
+      var rightForward  = results[0];
+      var rightBackward = results[1];
+      var leftBackward  = results[2];
+      var leftForward   = results[3];
+      var forward       = results[4];
+
+      function obstacle(isleft)
+      {
+          var aSpeed = -1;
+          if(isleft)
+          {
+            aSpeed = 1;
+          }
+          console.log('obstacle: set aSpeed: ' + aSpeed);
+          move(0,aSpeed);
+          setTimeout(function () {
+           move(0, 0);
+           setTimeout(function() {
+             move(60,0);
+             console.log('obstacle: set lSpeed: ' + 60);
+             setTimeout(function () {
+               move(0, 0);
+               setTimeout(function() {
+                 console.log('obstacle: set aSpeed: ' + -aSpeed);
+                 //move(0,-aSpeed/2);
+                 hcr.setMotorSpeed(0, -1);
+                 setTimeout(function () {
+                   //move(0,0);
+                   block = false;
+                   console.log('UNBLOCKED!!!');
+                   setTimeout(loop, 500);
+                 }, 1400);
+               }, 500);
+             }, 2000);
+           }, 500);
+          }, 1300);
+      }
+
+      let forwardMax = 500;
+      let angularMax = 200;
+
+      if(forward <= forwardMax && ultraforward <= forwardMax/10)
+      {
+        //console.log('requestInfraredDistance: (mm)');
+        //console.log(results);
+        console.log('forward: ' + forward + ' ultraforward: ' + ultraforward);
+
+        block = true;
+        console.log('BLOCKED!!!');
+        brake();
+        console.log('STOP!!!');
+        setTimeout(function() {
+          obstacle(true);
+          /*
+          if(rightForward >= angularMax) 
+          {
+            obstacle(false);
+          }
+          else if(leftForward >= angularMax)
+          {
+            obstacle(true);
+          }
+          else
+          {
+            obstacle(true);
+          }
+*/
+        }, 1000);
+      }
+    });
+
+    hcr.requestAntiDrop(function (results) {
+      ////console.log('requestAntiDrop:');
+      ////console.log(results);
+      var isRightForwardTriggered   = results[0];
+      var isRightBackwardTriggered  = results[1];
+      var isLeftBackwardTriggered   = results[2];
+      var isLeftForwardTriggered    = results[3];
+    });
+
+    hcr.requestBumper(function (results) {
+      ////console.log('requestBumper:');
+      ////console.log(results);
+      var isLeftForwardTriggered    = results[0];
+      var isForwardTriggered        = results[1];
+      var isRightForwardTriggered   = results[2];
+    });
+
+    setTimeout(loop, 100);
+  }, 100);
 });
 
-console.log('MRAA Version: ' + mraa.getVersion()); //write the mraa version to the console
+//console.log('MRAA Version: ' + mraa.getVersion()); //write the mraa version to the console
 
 let led = new mraa.Gpio(27); //Corresponding to ISH_GPIO4
 led.dir(mraa.DIR_OUT); //set the gpio direction to output
@@ -53,7 +168,7 @@ let pt;
 
 ptModule.createPersonTracker(ptConfig, cameraConfig).then((instance) => {
   pt = instance;
-  console.log('Enabling Tracking with mode set to 0');
+  //console.log('Enabling Tracking with mode set to 0');
   startServer();
   pt.on('frameprocessed', function(result) {
     sendRgbFrame(pt.getFrameData());
@@ -67,10 +182,10 @@ ptModule.createPersonTracker(ptConfig, cameraConfig).then((instance) => {
 
   return pt.start();
 }).catch((error) => {
-  console.log('error: ' + error);
+  //console.log('error: ' + error);
 });
 
-console.log('\n-------- Press Esc key to exit --------\n');
+//console.log('\n-------- Press Esc key to exit --------\n');
 
 const ESC_KEY = '\u001b';
 const CTRL_C = '\u0003';
@@ -85,12 +200,12 @@ stdin.on('data', function(key) {
 });
 
 function exit() {
-  console.log('\n-------- Stopping --------');
+  //console.log('\n-------- Stopping --------');
   if (pt) {
     pt.stop().then(() => {
       process.exit();
     }).catch((error) => {
-      console.log('error: ' + error);
+      //console.log('error: ' + error);
       process.exit();
     });
   } else {
@@ -102,13 +217,13 @@ let personDetected = false;
 function checkPersonDetected(result) {
   if (result.persons.length > 0) {
     if (!personDetected) {
-      console.log('Person is detected, blink LED...');
+      //console.log('Person is detected, blink LED...');
       personDetected = true;
       startBlinkLed();
     }
   } else {
     if (personDetected) {
-      console.log('No person is detected, stop blinking...');
+      //console.log('No person is detected, stop blinking...');
       personDetected = false;
       stopBlinkLed();
       brake();
@@ -121,7 +236,7 @@ let trackingPersonId;
 function startTracking(result) {
   if (pt.state === 'detecting' && result.persons.length > 0) {
     // Start tracking the first person detected in the frame.
-    console.log('Call StartTracking()');
+    //console.log('Call StartTracking()');
     trackingPersonId = result.persons[0].trackInfo.id;
     pt.personTracking.startTrackingPerson(trackingPersonId);
   }
@@ -247,7 +362,7 @@ function sendData(data) {
         client.send(data);
       });
     } catch (exception) {
-      console.log('Exception: send data failed exception:', exception);
+      //console.log('Exception: send data failed exception:', exception);
     }
   }
 }
@@ -292,10 +407,10 @@ function handleGamepadMessage(controller) {
     if (pressed0) {
       stopped = !stopped;
       if (stopped) {
-        console.log('stopped');
+        //console.log('stopped');
         brake();
       } else {
-        console.log('started');
+        //console.log('started');
       }
     } 
   }
@@ -306,9 +421,9 @@ function handleGamepadMessage(controller) {
     if (pressed1) {
       following = !following;
       if (following) {
-        console.log('following');
+        //console.log('following');
       } else {
-        console.log('no-following');
+        //console.log('no-following');
       }
     } 
   }
@@ -336,6 +451,9 @@ let linear = 0;
 
 function updateSpeed(result) {
   if (!following)
+    return;
+
+  if (block)
     return;
   // control 10 FPS
   /*
@@ -408,11 +526,11 @@ function updateSpeed(result) {
 
 function handleFollowMessage(enable) {
   if (enable) {
-    console.log('enable follow');
+    //console.log('enable follow');
     following = true;
     stopped = false;
   } else {
-    console.log('disable follow');
+    //console.log('disable follow');
     brake();
     following = false;
     stopped = true;
@@ -429,18 +547,18 @@ function startServer() {
     server: server,
   });
 
-  console.log('\nEthernet ip:' + ip);
-  console.log(' >>> point your browser to: http://' + ip + ':' + port + '/view.html');
+  //console.log('\nEthernet ip:' + ip);
+  //console.log(' >>> point your browser to: http://' + ip + ':' + port + '/view.html');
 
   wss.on('connection', function(client) {
-    console.log('server: got connection ' + client._socket.remoteAddress + ':' +
-        client._socket.remotePort);
+    //console.log('server: got connection ' + client._socket.remoteAddress + ':' +
+        //client._socket.remotePort);
     clients.push(client);
     if (!connected)
       connected = true;
     client.on('close', function() {
-      console.log('server: disconnect ' + client._socket.remoteAddress + ':' +
-          client._socket.remotePort);
+      //console.log('server: disconnect ' + client._socket.remoteAddress + ':' +
+          //client._socket.remotePort);
       let index = clients.indexOf(client);
       if (index > -1) {
         clients.splice(index, 1);
@@ -458,7 +576,7 @@ function startServer() {
         } else if (msgObject.type === 'follow') {
           handleFollowMessage(msgObject.body);
         } else {
-          console.log('unkonwn message type: ' + msgObject.type);
+          //console.log('unkonwn message type: ' + msgObject.type);
         }
       }
     });
@@ -472,7 +590,10 @@ function brake() {
 function move(linear, angular) {
   if (!stopped) {
     linear *= 100;
-    console.log('set speed: ' + linear + ', ' + angular);
-    hcr.setMotorSpeed(linear, linear);
+    angular *= 10;
+    //console.log('set speed: ' + linear + ', ' + angular);
+    var LSpeed = linear - (angular * 105)/67.5;
+    var RSpeed = linear + (angular * 105)/67.5;
+    hcr.setMotorSpeed(LSpeed, RSpeed);
   }
 }

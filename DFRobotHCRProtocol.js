@@ -9,7 +9,7 @@ SerialPort.list(function (err, ports) {
       SerialPortName=String(port.comName) ;
     }
   });
-  console.log(SerialPortName);
+  //console.log(SerialPortName);
 
   serialPort = new SerialPort(SerialPortName, {
     parser: SerialPort.parsers.raw,
@@ -262,8 +262,8 @@ function transmit(stack, length) {
   var buffer = Buffer(stack.slice(0,length));
   serialPort.write(buffer, function(err, results) {
     if (!err) {
-      console.log('write:');
-      console.log(buffer.toString('hex'));
+      //console.log('write:');
+      //console.log(buffer.toString('hex'));
     }
     else {
       console.log('err ' + err);
