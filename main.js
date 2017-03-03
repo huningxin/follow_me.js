@@ -70,13 +70,11 @@ let hcr = new DFRobotHCRProtocol(function () {
                setTimeout(function() {
                  console.log('obstacle: set aSpeed: ' + -aSpeed);
                  //move(0,-aSpeed/2);
-                 hcr.setMotorSpeed(0, -1);
-                 setTimeout(function () {
-                   //move(0,0);
-                   block = false;
-                   console.log('UNBLOCKED!!!');
-                   setTimeout(loop, 500);
-                 }, 1400);
+                 let s = 15;
+                 hcr.setMotorSpeed(s, -s);
+                 block = false;
+                 console.log('UNBLOCKED!!!');
+                 setTimeout(loop, 500);
                }, 500);
              }, 2000);
            }, 500);
@@ -86,7 +84,7 @@ let hcr = new DFRobotHCRProtocol(function () {
       let forwardMax = 500;
       let angularMax = 200;
 
-      if(forward <= forwardMax && ultraforward <= forwardMax/10)
+      if((forward <= forwardMax && ultraforward <= forwardMax/10) || rightForward <= angularMax || leftForward <= angularMax)
       {
         //console.log('requestInfraredDistance: (mm)');
         //console.log(results);
