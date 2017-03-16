@@ -11,7 +11,7 @@ let server = require('http').createServer(app);
 let WsServer = require('ws').Server;
 
 let mraa = require('mraa'); //require mraa
-let ptModule = require('person-tracking'); //require person-tracking
+let ptModule = require('node-person'); //require person-tracking
 //let addon = require('node-kobuki');
 //let kobuki = new addon.KobukiManager('/ttyUSB0');
 const DFRobotHCRProtocol = require('./DFRobotHCRProtocol');
@@ -137,8 +137,8 @@ let hcr = new DFRobotHCRProtocol(function () {
 
 //console.log('MRAA Version: ' + mraa.getVersion()); //write the mraa version to the console
 
-let led = new mraa.Gpio(27); //Corresponding to ISH_GPIO4
-led.dir(mraa.DIR_OUT); //set the gpio direction to output
+//let led = new mraa.Gpio(27); //Corresponding to ISH_GPIO4
+//led.dir(mraa.DIR_OUT); //set the gpio direction to output
 let ledState = true; //Boolean to hold the state of Led
 let intervalId = null;
 
@@ -146,7 +146,7 @@ function startBlinkLed() {
   if (intervalId !== null)
     return;
   intervalId = setInterval(() => {
-    led.write(ledState?1:0); //if ledState is true then write a '1' (high) otherwise write a '0' (low)
+   // led.write(ledState?1:0); //if ledState is true then write a '1' (high) otherwise write a '0' (low)
     ledState = !ledState; //invert the ledState
   }, 100);
 }
@@ -156,7 +156,7 @@ function stopBlinkLed() {
     return;
   clearInterval(intervalId);
   intervalId = null;
-  led.write(0);
+  //led.write(0);
 }
 
 let ptConfig = {tracking: {enable: true, trackingMode: 'following'}};
@@ -169,7 +169,9 @@ ptModule.createPersonTracker(ptConfig, cameraConfig).then((instance) => {
   //console.log('Enabling Tracking with mode set to 0');
   startServer();
   pt.on('frameprocessed', function(result) {
-    sendRgbFrame(pt.getFrameData());
+    pt.getFrameData().then((frame) => {
+      sendRgbFrame(frame);
+    });
     checkPersonDetected(result);
   });
   pt.on('persontracked', function(result) {
@@ -545,8 +547,8 @@ function startServer() {
     server: server,
   });
 
-  //console.log('\nEthernet ip:' + ip);
-  //console.log(' >>> point your browser to: http://' + ip + ':' + port + '/view.html');
+  console.log('\nEthernet ip:' + ip);
+  console.log(' >>> point your browser to: http://' + ip + ':' + port + '/view.html');
 
   wss.on('connection', function(client) {
     //console.log('server: got connection ' + client._socket.remoteAddress + ':' +
