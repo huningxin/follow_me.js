@@ -12,24 +12,19 @@ let WsServer = require('ws').Server;
 
 let mraa = require('mraa'); //require mraa
 let ptModule = require('node-person'); //require person-tracking
-//let addon = require('node-kobuki');
-//let kobuki = new addon.KobukiManager('/ttyUSB0');
 const DFRobotHCRProtocol = require('./DFRobotHCRProtocol');
 
 // var speed = 20; // cm/s
 
-
 var block = false;
 let hcr = new DFRobotHCRProtocol(function () {
-  //console.log("On System ready");
+  console.log("On HCR System ready");
 
   setTimeout(function loop () {
     if(block)
     {
       return;
     }
-
-    //console.log();
 
     var ultraforward = 100000;
     hcr.requestUltrasonicDistance(function (results) {
@@ -137,6 +132,7 @@ let hcr = new DFRobotHCRProtocol(function () {
 
 //console.log('MRAA Version: ' + mraa.getVersion()); //write the mraa version to the console
 
+// Disable the blink LED functionality
 //let led = new mraa.Gpio(27); //Corresponding to ISH_GPIO4
 //led.dir(mraa.DIR_OUT); //set the gpio direction to output
 let ledState = true; //Boolean to hold the state of Led
@@ -219,13 +215,13 @@ function checkPersonDetected(result) {
     if (!personDetected) {
       //console.log('Person is detected, blink LED...');
       personDetected = true;
-      startBlinkLed();
+      //startBlinkLed();
     }
   } else {
     if (personDetected) {
       //console.log('No person is detected, stop blinking...');
       personDetected = false;
-      stopBlinkLed();
+      //stopBlinkLed();
       brake();
     }
   }
@@ -551,14 +547,14 @@ function startServer() {
   console.log(' >>> point your browser to: http://' + ip + ':' + port + '/view.html');
 
   wss.on('connection', function(client) {
-    //console.log('server: got connection ' + client._socket.remoteAddress + ':' +
-        //client._socket.remotePort);
+    console.log('server: got connection ' + client._socket.remoteAddress + ':' +
+        client._socket.remotePort);
     clients.push(client);
     if (!connected)
       connected = true;
     client.on('close', function() {
-      //console.log('server: disconnect ' + client._socket.remoteAddress + ':' +
-          //client._socket.remotePort);
+      console.log('server: disconnect ' + client._socket.remoteAddress + ':' +
+          client._socket.remotePort);
       let index = clients.indexOf(client);
       if (index > -1) {
         clients.splice(index, 1);
