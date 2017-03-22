@@ -9,19 +9,15 @@ let express = require('express');
 let app = express();
 let server = require('http').createServer(app);
 let WsServer = require('ws').Server;
+let ptModule = require('node-person');
+let DFRobotHCRProtocol = require('./DFRobotHCRProtocol');
 
-let mraa = require('mraa'); //require mraa
-let ptModule = require('node-person'); //require person-tracking
-const DFRobotHCRProtocol = require('./DFRobotHCRProtocol');
-
-// var speed = 20; // cm/s
-
-var block = false;
+var blocked = false;
 let hcr = new DFRobotHCRProtocol(function () {
-  console.log("On HCR System ready");
+  console.log("HCR System ready");
 
   setTimeout(function loop () {
-    if(block)
+    if(blocked)
     {
       return;
     }
@@ -46,34 +42,34 @@ let hcr = new DFRobotHCRProtocol(function () {
       var leftForward   = results[3];
       var forward       = results[4];
 
-      function obstacle(isleft)
+      function avoidObstacle(isleft)
       {
-          var aSpeed = -1;
-          if(isleft)
-          {
-            aSpeed = 1;
-          }
-          console.log('obstacle: set aSpeed: ' + aSpeed);
-          move(0,aSpeed);
-          setTimeout(function () {
-           move(0, 0);
-           setTimeout(function() {
-             move(60,0);
-             console.log('obstacle: set lSpeed: ' + 60);
-             setTimeout(function () {
-               move(0, 0);
-               setTimeout(function() {
-                 console.log('obstacle: set aSpeed: ' + -aSpeed);
-                 //move(0,-aSpeed/2);
-                 let s = 15;
-                 hcr.setMotorSpeed(s, -s);
-                 block = false;
-                 console.log('UNBLOCKED!!!');
-                 setTimeout(loop, 500);
-               }, 500);
-             }, 2000);
-           }, 500);
-          }, 1300);
+        var aSpeed = -1;
+        if(isleft)
+        {
+          aSpeed = 1;
+        }
+        console.log('avoidObstacle: set aSpeed: ' + aSpeed);
+        move(0, aSpeed);
+        setTimeout(function () {
+         move(0, 0);
+         setTimeout(function() {
+          let lSpeed = 60;
+           move(lSpeed, 0);
+           console.log('avoidObstacle: set lSpeed: ' + lSpeed);
+           setTimeout(function () {
+             move(0, 0);
+             setTimeout(function() {
+               console.log('avoidObstacle: turn around');
+               let s = 15;
+               hcr.setMotorSpeed(s, -s);
+               blocked = false;
+               console.log('Finish avoiding obstacle!');
+               setTimeout(loop, 500);
+             }, 500);
+           }, 2000);
+         }, 500);
+        }, 1300);
       }
 
       let forwardMax = 500;
@@ -81,37 +77,28 @@ let hcr = new DFRobotHCRProtocol(function () {
 
       if((forward <= forwardMax && ultraforward <= forwardMax/10) || rightForward <= angularMax || leftForward <= angularMax)
       {
-        //console.log('requestInfraredDistance: (mm)');
-        //console.log(results);
-        console.log('forward: ' + forward + ' ultraforward: ' + ultraforward);
-
-        block = true;
-        console.log('BLOCKED!!!');
+        blocked = true;
+        console.log('Start avoiding obtacle!');
         brake();
-        console.log('STOP!!!');
         setTimeout(function() {
-          obstacle(true);
-          /*
+          avoidObstacle(true);
           if(rightForward >= angularMax) 
           {
-            obstacle(false);
+            avoidObstacle(false);
           }
           else if(leftForward >= angularMax)
           {
-            obstacle(true);
+            avoidObstacle(true);
           }
           else
           {
-            obstacle(true);
+            avoidObstacle(true);
           }
-*/
         }, 1000);
       }
     });
 
     hcr.requestAntiDrop(function (results) {
-      ////console.log('requestAntiDrop:');
-      ////console.log(results);
       var isRightForwardTriggered   = results[0];
       var isRightBackwardTriggered  = results[1];
       var isLeftBackwardTriggered   = results[2];
@@ -119,8 +106,6 @@ let hcr = new DFRobotHCRProtocol(function () {
     });
 
     hcr.requestBumper(function (results) {
-      ////console.log('requestBumper:');
-      ////console.log(results);
       var isLeftForwardTriggered    = results[0];
       var isForwardTriggered        = results[1];
       var isRightForwardTriggered   = results[2];
@@ -130,31 +115,6 @@ let hcr = new DFRobotHCRProtocol(function () {
   }, 100);
 });
 
-//console.log('MRAA Version: ' + mraa.getVersion()); //write the mraa version to the console
-
-// Disable the blink LED functionality
-//let led = new mraa.Gpio(27); //Corresponding to ISH_GPIO4
-//led.dir(mraa.DIR_OUT); //set the gpio direction to output
-let ledState = true; //Boolean to hold the state of Led
-let intervalId = null;
-
-function startBlinkLed() {
-  if (intervalId !== null)
-    return;
-  intervalId = setInterval(() => {
-   // led.write(ledState?1:0); //if ledState is true then write a '1' (high) otherwise write a '0' (low)
-    ledState = !ledState; //invert the ledState
-  }, 100);
-}
-
-function stopBlinkLed() {
-  if (intervalId === null)
-    return;
-  clearInterval(intervalId);
-  intervalId = null;
-  //led.write(0);
-}
-
 let ptConfig = {tracking: {enable: true, trackingMode: 'following'}};
 let cameraConfig = {color: {width: 320, height: 240, frameRate: 30, isEnabled: true},
                     depth: {width: 320, height: 240, frameRate: 30, isEnabled: true}};
@@ -162,7 +122,7 @@ let pt;
 
 ptModule.createPersonTracker(ptConfig, cameraConfig).then((instance) => {
   pt = instance;
-  //console.log('Enabling Tracking with mode set to 0');
+  console.log('Enabling Tracking with mode set to 0');
   startServer();
   pt.on('frameprocessed', function(result) {
     pt.getFrameData().then((frame) => {
@@ -178,10 +138,10 @@ ptModule.createPersonTracker(ptConfig, cameraConfig).then((instance) => {
 
   return pt.start();
 }).catch((error) => {
-  //console.log('error: ' + error);
+  console.log('error: ' + error);
 });
 
-//console.log('\n-------- Press Esc key to exit --------\n');
+console.log('\n-------- Press Esc key to exit --------\n');
 
 const ESC_KEY = '\u001b';
 const CTRL_C = '\u0003';
@@ -196,12 +156,12 @@ stdin.on('data', function(key) {
 });
 
 function exit() {
-  //console.log('\n-------- Stopping --------');
+  console.log('\n-------- Stopping --------');
   if (pt) {
     pt.stop().then(() => {
       process.exit();
     }).catch((error) => {
-      //console.log('error: ' + error);
+      console.log('error: ' + error);
       process.exit();
     });
   } else {
@@ -213,15 +173,11 @@ let personDetected = false;
 function checkPersonDetected(result) {
   if (result.persons.length > 0) {
     if (!personDetected) {
-      //console.log('Person is detected, blink LED...');
       personDetected = true;
-      //startBlinkLed();
     }
   } else {
     if (personDetected) {
-      //console.log('No person is detected, stop blinking...');
       personDetected = false;
-      //stopBlinkLed();
       brake();
     }
   }
@@ -392,50 +348,8 @@ function getEthernetIp() {
   return ip;
 }
 
-let axe0, axe1, pressed0, pressed1;
 let stopped = true;
 let following = false;
-
-function handleGamepadMessage(controller) {
-  let newPressed0= controller.buttons[0].pressed;
-  if (pressed0 != newPressed0) {
-    pressed0 = newPressed0;
-    if (pressed0) {
-      stopped = !stopped;
-      if (stopped) {
-        //console.log('stopped');
-        brake();
-      } else {
-        //console.log('started');
-      }
-    } 
-  }
-
-  let newPressed1= controller.buttons[1].pressed;
-  if (pressed1 != newPressed1) {
-    pressed1 = newPressed1;
-    if (pressed1) {
-      following = !following;
-      if (following) {
-        //console.log('following');
-      } else {
-        //console.log('no-following');
-      }
-    } 
-  }
-
-  let newAxe0 = Math.floor(controller.axes[0] * 10) / 10;
-  let newAxe1 = Math.floor(controller.axes[1] * 10) / 10;
-  if (axe0 != newAxe0 || axe1 != newAxe1) {
-    axe0 = newAxe0;
-    axe1 = newAxe1;
-    if (!stopped) {
-      if (axe1 <= 0) axe0 = -axe0;
-      move(-axe1/2, axe0);
-    }
-  }
-}
-
 const centerX = 0;
 const centerY = 0;
 const centerZ = 1.3;
@@ -449,19 +363,8 @@ function updateSpeed(result) {
   if (!following)
     return;
 
-  if (block)
+  if (blocked)
     return;
-  // control 10 FPS
-  /*
-  if (prevTimestamp === 0) {
-    prevTimestamp = Date.now();
-  } else {
-    let diff = Date.now() - prevTimestamp;
-    if (diff < 100)
-      return;
-    prevTimestamp = Date.now();
-  }
-  */
 
   // find the tracking person
   let persons = result.persons;
@@ -537,7 +440,7 @@ function startServer() {
   // Share the ui-browser code from cpp sample
   app.use(express.static('client'));
   const ip = getEthernetIp();
-  const port = 8000;
+  const port = 8001;
   server.listen(port, ip);
   let wss = new WsServer({
     server: server,
@@ -567,12 +470,10 @@ function startServer() {
       if (message instanceof Buffer) {
       } else {
         let msgObject = JSON.parse(message);
-        if (msgObject.type === 'gamepad') {
-          handleGamepadMessage(msgObject.body);
-        } else if (msgObject.type === 'follow') {
+        if (msgObject.type === 'follow') {
           handleFollowMessage(msgObject.body);
         } else {
-          //console.log('unkonwn message type: ' + msgObject.type);
+          console.log('unkonwn message type: ' + msgObject.type);
         }
       }
     });
@@ -587,9 +488,10 @@ function move(linear, angular) {
   if (!stopped) {
     linear *= 100;
     angular *= 10;
-    //console.log('set speed: ' + linear + ', ' + angular);
-    var LSpeed = linear - (angular * 105)/67.5;
-    var RSpeed = linear + (angular * 105)/67.5;
-    hcr.setMotorSpeed(LSpeed, RSpeed);
+    const e = 105; // half distance between left and right wheel
+    const r = 67.5; // radius of the wheel
+    var leftSpeed = linear - (angular * e)/r;
+    var rightSpeed = linear + (angular * e)/r;
+    hcr.setMotorSpeed(leftSpeed, rightSpeed);
   }
 }
