@@ -157,16 +157,21 @@ stdin.on('data', function(key) {
 
 function exit() {
   console.log('\n-------- Stopping --------');
-  if (pt) {
-    pt.stop().then(() => {
+  following = false;
+  stopped = true;
+  brake();
+  setTimeout(() => {
+    if (pt) {
+      pt.stop().then(() => {
+        process.exit();
+      }).catch((error) => {
+        console.log('error: ' + error);
+        process.exit();
+      });
+    } else {
       process.exit();
-    }).catch((error) => {
-      console.log('error: ' + error);
-      process.exit();
-    });
-  } else {
-    process.exit();
-  }
+    }
+  }, 1000);
 }
 
 let personDetected = false;
@@ -440,14 +445,14 @@ function startServer() {
   // Share the ui-browser code from cpp sample
   app.use(express.static('client'));
   const ip = getEthernetIp();
-  const port = 8001;
+  const port = 8000;
   server.listen(port, ip);
   let wss = new WsServer({
     server: server,
   });
 
   console.log('\nEthernet ip:' + ip);
-  console.log(' >>> point your browser to: http://' + ip + ':' + port + '/view.html');
+  console.log(' >>> point your browser to: http://' + ip + ':' + port + '/index.html');
 
   wss.on('connection', function(client) {
     console.log('server: got connection ' + client._socket.remoteAddress + ':' +
