@@ -30,9 +30,17 @@ npm install -g node-gyp
 ```
 
 ## Bootstrap
+
+1. Connect Joule to a wireless LAN network and open terminal via SSH
+
+2. Install application on Joule board
+
 ```
+$ cd /path/to/follow_me.js (this project)
 $ npm install
 ```
+
+3. Connect HCR and Joule board through USB port
 
 ## Run
 
